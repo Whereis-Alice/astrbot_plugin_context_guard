@@ -1,0 +1,112 @@
+{
+  "enabled": {
+    "type": "bool",
+    "description": "启用 ContextGuard 插件。",
+    "hint": "关闭后插件不会捕获请求，也不会打 OpenAI Provider 运行时补丁。",
+    "default": true
+  },
+  "log_agent_context": {
+    "type": "bool",
+    "description": "记录 Agent 开始运行时的消息上下文摘要。",
+    "hint": "会把 run_context.messages 的消息数量、角色分布和字符量写入 dump，便于确认压缩前的真实上下文。",
+    "default": true
+  },
+  "warn_total_chars": {
+    "type": "int",
+    "description": "请求总字符量达到这个阈值时输出 warning。",
+    "hint": "这是一个粗略的字符量预警，不等于精确 token，但足够帮助定位异常大的 prompt / system / history。",
+    "default": 20000,
+    "min": 0
+  },
+  "remember_last_sessions": {
+    "type": "int",
+    "description": "在内存中保留多少个会话的最近一次捕获结果。",
+    "hint": "用于 `context_guard_status` 和 `context_guard_dump` 命令。",
+    "default": 50,
+    "min": 0,
+    "max": 200
+  },
+  "preview_chars": {
+    "type": "int",
+    "description": "日志和状态预览里每段文本最多显示多少字符。",
+    "hint": "只影响摘要预览，不影响 dump 文件里的统计。",
+    "default": 160,
+    "min": 32,
+    "max": 1000
+  },
+  "detail_preview_limit": {
+    "type": "int",
+    "description": "payload 摘要里最多保留多少条消息预览。",
+    "hint": "用于 provider_prepare / provider_error dump 的 previews 字段。",
+    "default": 6,
+    "min": 1,
+    "max": 30
+  },
+  "mutation_log_limit": {
+    "type": "int",
+    "description": "日志里最多展示多少条列表变更记录。",
+    "hint": "完整记录仍然会写入 dump 文件。",
+    "default": 8,
+    "min": 1,
+    "max": 30
+  },
+  "dominant_chars_threshold": {
+    "type": "int",
+    "description": "判定某一块内容成为主要根因的最小字符阈值。",
+    "hint": "超过这个阈值且占比较高时，会被诊断为主要问题来源。",
+    "default": 12000,
+    "min": 0
+  },
+  "extra_parts_warn_chars": {
+    "type": "int",
+    "description": "当 extra_user_content_parts 超过这个字符量时给出告警。",
+    "hint": "适合排查插件在 `on_llm_request` 阶段追加的大块动态上下文。",
+    "default": 8000,
+    "min": 0
+  },
+  "single_prompt_warn_chars": {
+    "type": "int",
+    "description": "当单条 prompt 超过这个字符量时给出告警。",
+    "hint": "用于识别“当前用户输入本身太长”这一类根因。",
+    "default": 12000,
+    "min": 0
+  },
+  "auto_fix_empty_messages_after_overflow": {
+    "type": "bool",
+    "description": "在命中 context overflow 且 provider 返回空 messages 重试时自动修复。",
+    "hint": "这是解决 `field messages is required` 的核心开关。",
+    "default": true
+  },
+  "auto_trim_system_messages_after_overflow": {
+    "type": "bool",
+    "description": "修复 overflow 时自动裁剪 system 消息。",
+    "hint": "如果 system prompt 本身过长，裁剪它通常比继续删除用户消息更安全。",
+    "default": true
+  },
+  "max_system_chars_after_overflow": {
+    "type": "int",
+    "description": "overflow 修复后保留的 system 消息总字符预算。",
+    "hint": "如果人格 / 系统提示词异常大，可以把这个值再调小。",
+    "default": 4000,
+    "min": 128
+  },
+  "max_non_system_chars_after_overflow": {
+    "type": "int",
+    "description": "overflow 修复后保留的最后一条非 system 消息最大字符数。",
+    "hint": "单条用户消息超长时，会被截断到这个大小，避免再次立刻超限。",
+    "default": 6000,
+    "min": 128
+  },
+  "inject_placeholder_user_on_system_only_overflow": {
+    "type": "bool",
+    "description": "如果 overflow 后只剩 system 消息，是否注入一条占位 user 消息。",
+    "hint": "部分 OpenAI 兼容端对只含 system 的请求更敏感，开启这个选项能提高兼容性。",
+    "default": true
+  },
+  "overflow_placeholder_user_message": {
+    "type": "string",
+    "description": "只剩 system 消息时注入的占位 user 文本。",
+    "hint": "默认值已经足够安全，通常不需要改。",
+    "default": "[ContextGuard] Continue with reduced context."
+  }
+}
