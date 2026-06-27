@@ -55,6 +55,7 @@ class RequestSummary:
     extra_parts_count: int
     extra_parts_chars: int
     tool_count: int
+    tool_chars: int
     roles: dict[str, int]
     longest_message_chars: int
     total_chars: int
@@ -261,7 +262,7 @@ class ContextGuardPlugin(Star):
         warn_limit = self._cfg_int("warn_total_chars", 20000)
         log_fn = logger.warning if warn_limit > 0 and total_chars >= warn_limit else logger.info
         log_fn(
-            "[ContextGuard] umo=%s session=%s total_chars=%s prompt=%s system=%s contexts=%s/%s extra=%s tools=%s",
+            "[ContextGuard] umo=%s session=%s total_chars=%s prompt=%s system=%s contexts=%s/%s extra=%s tools=%s/%s",
             state.umo,
             state.session_id or PREVIEW_FALLBACK,
             total_chars,
@@ -271,12 +272,13 @@ class ContextGuardPlugin(Star):
             state.final_summary.context_chars,
             state.final_summary.extra_parts_chars,
             state.final_summary.tool_count,
+            state.final_summary.tool_chars,
         )
         if state.diagnoses:
             log_fn("[ContextGuard] diagnoses: %s", " | ".join(state.diagnoses))
         if state.mutations:
             preview = " | ".join(
-                f"{item.source} {item.channel}.{item.action} +{item.count}"
+                self._format_mutation_log(item)
                 for item in state.mutations[: self._cfg_int("mutation_log_limit", 8)]
             )
             log_fn("[ContextGuard] tracked mutations: %s", preview)
@@ -332,6 +334,36 @@ class ContextGuardPlugin(Star):
             preview=self._preview_value(values[0] if values else None),
         )
         state.mutations.append(record)
+
+    def record_attribute_mutation(
+        self,
+        state: RequestAuditState,
+        *,
+        channel: str,
+        before: Any,
+        after: Any,
+    ) -> None:
+        before_text = str(before or "")
+        after_text = str(after or "")
+        if before_text == after_text:
+            return
+
+        before_chars = len(before_text)
+        after_chars = len(after_text)
+        delta = after_chars - before_chars
+        preview = f"{before_chars}->{after_chars} chars"
+        if delta:
+            preview += f" ({delta:+d})"
+
+        state.mutations.append(
+            MutationRecord(
+                channel=channel,
+                action="set",
+                source=self._infer_mutation_source(),
+                count=max(1, abs(delta)),
+                preview=preview,
+            )
+        )
 
     def on_provider_payload_prepared(
         self,
@@ -530,10 +562,42 @@ class ContextGuardPlugin(Star):
                 result=result,
             )
 
+        request_setattr_original = getattr(ProviderRequest, "__setattr__", None)
+
+        def request_setattr_wrapper(req: ProviderRequest, name: str, value: Any) -> None:
+            tracked_attr = name in {"prompt", "system_prompt"}
+            before_value = None
+            if tracked_attr:
+                try:
+                    before_value = getattr(req, name, None)
+                except Exception:
+                    before_value = None
+
+            request_setattr_original(req, name, value)
+
+            if not tracked_attr:
+                return
+
+            plugin = _ACTIVE_PLUGIN
+            if plugin is None:
+                return
+
+            state = getattr(req, STATE_EXTRA_KEY.replace(".", "_"), None)
+            if isinstance(state, RequestAuditState):
+                plugin.record_attribute_mutation(
+                    state,
+                    channel=name,
+                    before=before_value,
+                    after=value,
+                )
+
         ProviderOpenAIOfficial.text_chat = text_chat_wrapper
         ProviderOpenAIOfficial.text_chat_stream = text_chat_stream_wrapper
         ProviderOpenAIOfficial._prepare_chat_payload = prepare_chat_payload_wrapper
         ProviderOpenAIOfficial._handle_api_error = handle_api_error_wrapper
+        _PATCH_CLASSES["ProviderRequest"] = ProviderRequest
+        _PATCH_ORIGINALS["ProviderRequest.__setattr__"] = request_setattr_original
+        ProviderRequest.__setattr__ = request_setattr_wrapper
         _PATCHED = True
 
     def _restore_provider_patches(self) -> None:
@@ -548,6 +612,10 @@ class ContextGuardPlugin(Star):
             original = _PATCH_ORIGINALS.get(name)
             if original is not None:
                 setattr(provider_cls, name, original)
+        request_cls = _PATCH_CLASSES.get("ProviderRequest")
+        original_setattr = _PATCH_ORIGINALS.get("ProviderRequest.__setattr__")
+        if request_cls is not None and original_setattr is not None:
+            request_cls.__setattr__ = original_setattr
         _PATCHED = False
 
     def _remember_state(self, state: RequestAuditState) -> None:
@@ -649,7 +717,9 @@ class ContextGuardPlugin(Star):
         context_chars = sum(context_lengths)
         extra_parts_chars = sum(self._content_char_len(item) for item in extra_parts)
         longest_message_chars = max(context_lengths, default=0)
-        tool_count = len(self._extract_tools(getattr(req, "func_tool", None)))
+        tools = self._extract_tools(getattr(req, "func_tool", None))
+        tool_count = len(tools)
+        tool_chars = sum(self._tool_char_len(tool) for tool in tools)
 
         return RequestSummary(
             prompt_chars=prompt_chars,
@@ -660,9 +730,10 @@ class ContextGuardPlugin(Star):
             extra_parts_count=len(list(extra_parts)),
             extra_parts_chars=extra_parts_chars,
             tool_count=tool_count,
+            tool_chars=tool_chars,
             roles=dict(roles),
             longest_message_chars=longest_message_chars,
-            total_chars=prompt_chars + system_prompt_chars + context_chars + extra_parts_chars,
+            total_chars=prompt_chars + system_prompt_chars + context_chars + extra_parts_chars + tool_chars,
         )
 
     def _summarize_payload_messages(self, messages: list[Any]) -> dict[str, Any]:
@@ -712,6 +783,17 @@ class ContextGuardPlugin(Star):
                 f"system_prompt 在 hook 阶段发生变化（{initial.system_prompt_chars} -> {final.system_prompt_chars} chars）。"
             )
         if state.mutations:
+            system_prompt_sources = Counter(
+                item.source for item in state.mutations if item.channel == "system_prompt"
+            )
+            if system_prompt_sources:
+                system_preview = ", ".join(
+                    f"{source} x{count}"
+                    for source, count in system_prompt_sources.most_common(
+                        self._cfg_int("mutation_source_limit", 4)
+                    )
+                )
+                diagnoses.append(f"system_prompt 修改来源：{system_preview}")
             source_counts = Counter(item.source for item in state.mutations)
             preview = ", ".join(
                 f"{source} x{count}"
@@ -883,6 +965,23 @@ class ContextGuardPlugin(Star):
         except Exception:
             return []
 
+    def _tool_char_len(self, tool: Any) -> int:
+        if tool is None:
+            return 0
+        if hasattr(tool, "model_dump"):
+            try:
+                return len(self._safe_json(tool.model_dump()))
+            except Exception:
+                return len(str(tool))
+        if hasattr(tool, "__dict__"):
+            try:
+                return len(self._safe_json(vars(tool)))
+            except Exception:
+                return len(str(tool))
+        if isinstance(tool, (dict, list, tuple)):
+            return len(self._safe_json(tool))
+        return len(str(tool))
+
     def _ensure_message_dict(self, message: Any) -> dict[str, Any]:
         if isinstance(message, dict):
             return message
@@ -974,6 +1073,11 @@ class ContextGuardPlugin(Star):
             return "[" + ", ".join(self._preview_value(item) for item in value[:3]) + ("..." if len(value) > 3 else "") + "]"
         return self._preview_text(value)
 
+    def _format_mutation_log(self, item: MutationRecord) -> str:
+        if item.action == "set" and item.channel in {"prompt", "system_prompt"}:
+            return f"{item.source} {item.channel}.{item.action} {item.preview}"
+        return f"{item.source} {item.channel}.{item.action} +{item.count}"
+
     def _infer_mutation_source(self) -> str:
         for frame_info in inspect.stack()[2:12]:
             filename = Path(frame_info.filename).resolve().as_posix().lower()
@@ -998,7 +1102,7 @@ class ContextGuardPlugin(Star):
                 f"system={final.system_prompt_chars}, "
                 f"context={final.context_chars} ({final.context_message_count} msgs), "
                 f"extra={final.extra_parts_chars}, "
-                f"tools={final.tool_count}"
+                f"tools={final.tool_count}/{final.tool_chars}"
             ),
         ]
         if state.diagnoses:
