@@ -19,7 +19,7 @@ from astrbot.api.star import Context, Star, StarTools, register
 
 
 PLUGIN_ID = "astrbot_plugin_context_guard"
-PLUGIN_VERSION = "0.1.2"
+PLUGIN_VERSION = "0.1.3"
 PLUGIN_DESC = "诊断上下文过长根因，记录 payload 演变，并修复 overflow 后 messages 被删空的重试问题"
 PLUGIN_REPO = "https://github.com/Whereis-Alice/astrbot_plugin_context_guard"
 

@@ -2,7 +2,7 @@
   "enabled": {
     "type": "bool",
     "description": "启用 ContextGuard 插件。",
-    "hint": "关闭后插件不会捕获请求，也不会打 OpenAI Provider 运行时补丁。",
+    "hint": "关闭后插件不会再捕获请求，也不会给 OpenAI 风格 Provider 打运行时补丁。",
     "default": true
   },
   "log_agent_context": {
@@ -14,7 +14,7 @@
   "warn_total_chars": {
     "type": "int",
     "description": "请求总字符量达到这个阈值时输出 warning。",
-    "hint": "这是一个粗略的字符量预警，不等于精确 token，但足够帮助定位异常大的 prompt / system / history。",
+    "hint": "这是一个粗略的字符量预警，不等于精确 token，但足够帮助定位异常大的 prompt、system_prompt 或历史消息。",
     "default": 20000,
     "min": 0
   },
@@ -29,7 +29,7 @@
   "preview_chars": {
     "type": "int",
     "description": "日志和状态预览里每段文本最多显示多少字符。",
-    "hint": "只影响摘要预览，不影响 dump 文件里的统计。",
+    "hint": "只影响摘要预览，不影响 dump 文件里的完整统计。",
     "default": 160,
     "min": 32,
     "max": 1000
@@ -37,7 +37,7 @@
   "detail_preview_limit": {
     "type": "int",
     "description": "payload 摘要里最多保留多少条消息预览。",
-    "hint": "用于 provider_prepare / provider_error dump 的 previews 字段。",
+    "hint": "用于 provider_prepare 和 provider_error dump 里的 previews 字段。",
     "default": 6,
     "min": 1,
     "max": 30
@@ -45,13 +45,13 @@
   "record_provider_prepare_tools": {
     "type": "bool",
     "description": "是否记录 provider_prepare 阶段实际 payloads.tools 的统计。",
-    "hint": "开启后会把真实 tools JSON 总字符数、工具名列表和体积最大的 tool 排行写进 provider_prepare dump。",
+    "hint": "开启后会把真实 tools JSON 总字符数、工具名列表和体积最大的 tool 排行写入 provider_prepare dump。",
     "default": true
   },
   "log_provider_prepare_summary": {
     "type": "bool",
-    "description": "鏄惁鍦ㄦ棩蹇椾腑鐩存帴杈撳嚭 provider_prepare 闃舵鐨勭湡瀹炴憳瑕併€?",
-    "hint": "寮€鍚悗浼氱洿鎺ユ墦鍗°乵essages 鐨勫疄闄呭瓧绗︽暟銆乼ools 鐨勫疄闄呭瓧绗︽暟銆佷及绠楀樊鍊煎拰鏈€澶?tool 鎺掕锛屼笉鐢ㄥ厛缈?dump銆?",
+    "description": "是否在日志中直接输出 provider_prepare 阶段的真实摘要。",
+    "hint": "开启后会直接打印 messages 的实际字符数、tools 的实际字符数、估算差值和最大 tool 排行，不用先翻 dump。",
     "default": true
   },
   "provider_prepare_tool_top_n": {
@@ -64,15 +64,15 @@
   },
   "provider_prepare_log_top_n": {
     "type": "int",
-    "description": "provider_prepare 鏃ュ織閲屾渶澶氬睍绀哄墠澶氬皯涓?tool 鎺掕銆?",
-    "hint": "鐢ㄤ簬鏃ュ織閲岀殑 top_tools 棰勮锛岄伩鍏嶄竴娆℃墦鍗板お澶氥€?",
+    "description": "provider_prepare 日志里最多显示前多少个 tool 排行。",
+    "hint": "用于日志里的 top_tools 预览，避免一次打印太多。",
     "default": 3,
     "min": 0,
     "max": 20
   },
   "mutation_log_limit": {
     "type": "int",
-    "description": "日志里最多展示多少条列表变更记录。",
+    "description": "日志里最多显示多少条列表变更记录。",
     "hint": "完整记录仍然会写入 dump 文件。",
     "default": 8,
     "min": 1,
@@ -101,27 +101,27 @@
   },
   "auto_fix_empty_messages_after_overflow": {
     "type": "bool",
-    "description": "在命中 context overflow 且 provider 返回空 messages 重试时自动修复。",
+    "description": "在命中 context overflow 且 provider 重试把 messages 删空时自动修复。",
     "hint": "这是解决 `field messages is required` 的核心开关。",
     "default": true
   },
   "auto_trim_system_messages_after_overflow": {
     "type": "bool",
     "description": "修复 overflow 时自动裁剪 system 消息。",
-    "hint": "如果 system prompt 本身过长，裁剪它通常比继续删除用户消息更安全。",
+    "hint": "如果 system prompt 本身过长，优先裁剪它通常比继续删除用户消息更安全。",
     "default": true
   },
   "max_system_chars_after_overflow": {
     "type": "int",
     "description": "overflow 修复后保留的 system 消息总字符预算。",
-    "hint": "如果人格 / 系统提示词异常大，可以把这个值再调小。",
+    "hint": "如果人格或系统提示词异常大，可以把这个值再调小。",
     "default": 4000,
     "min": 128
   },
   "max_non_system_chars_after_overflow": {
     "type": "int",
     "description": "overflow 修复后保留的最后一条非 system 消息最大字符数。",
-    "hint": "单条用户消息超长时，会被截断到这个大小，避免再次立刻超限。",
+    "hint": "单条用户消息过长时，会截断到这个大小，避免再次立刻超限。",
     "default": 6000,
     "min": 128
   },
