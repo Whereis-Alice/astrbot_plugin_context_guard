@@ -1,0 +1,29 @@
+{
+  "$meta": {
+    "schema_version": 1,
+    "name": "Whereis-Alice Plugin Source",
+    "version": "2026-06-28",
+    "homepage": "https://github.com/Whereis-Alice/astrbot_plugin_context_guard",
+    "repository": "https://github.com/Whereis-Alice/astrbot_plugin_context_guard",
+    "description": "Custom AstrBot plugin source for Whereis-Alice plugins.",
+    "updated_at": "2026-06-28T00:00:00Z"
+  },
+  "Whereis-Alice/astrbot_plugin_context_guard": {
+    "author": "Whereis-Alice",
+    "name": "astrbot_plugin_context_guard",
+    "display_name": "上下文守卫",
+    "version": "0.1.1",
+    "repo": "https://github.com/Whereis-Alice/astrbot_plugin_context_guard",
+    "download_url": "https://github.com/Whereis-Alice/astrbot_plugin_context_guard/archive/refs/heads/main.zip",
+    "desc": "诊断上下文过长根因，记录 OpenAI payload 演变，并修复 overflow 后 messages 被删空的重试问题。",
+    "short_desc": "上下文过长诊断与兜底修复",
+    "astrbot_version": ">=4.16,<5",
+    "tags": [
+      "debug",
+      "provider",
+      "context",
+      "openai"
+    ],
+    "updated_at": "2026-06-28T00:00:00Z"
+  }
+}

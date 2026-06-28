@@ -42,6 +42,20 @@
     "min": 1,
     "max": 30
   },
+  "record_provider_prepare_tools": {
+    "type": "bool",
+    "description": "是否记录 provider_prepare 阶段实际 payloads.tools 的统计。",
+    "hint": "开启后会把真实 tools JSON 总字符数、工具名列表和体积最大的 tool 排行写进 provider_prepare dump。",
+    "default": true
+  },
+  "provider_prepare_tool_top_n": {
+    "type": "int",
+    "description": "provider_prepare 工具体积排行保留前多少项。",
+    "hint": "会按单个 tool 的实际 JSON 字符数倒序保留，并附带 description_chars 和 parameters_chars。",
+    "default": 12,
+    "min": 1,
+    "max": 100
+  },
   "mutation_log_limit": {
     "type": "int",
     "description": "日志里最多展示多少条列表变更记录。",

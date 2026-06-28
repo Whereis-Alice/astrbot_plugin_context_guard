@@ -19,9 +19,9 @@ from astrbot.api.star import Context, Star, StarTools, register
 
 
 PLUGIN_ID = "astrbot_plugin_context_guard"
-PLUGIN_VERSION = "0.1.0"
+PLUGIN_VERSION = "0.1.1"
 PLUGIN_DESC = "诊断上下文过长根因，记录 payload 演变，并修复 overflow 后 messages 被删空的重试问题"
-PLUGIN_REPO = ""
+PLUGIN_REPO = "https://github.com/Whereis-Alice/astrbot_plugin_context_guard"
 
 STATE_EXTRA_KEY = f"{PLUGIN_ID}.state"
 EARLY_PRIORITY = 10000
@@ -85,6 +85,7 @@ class RequestAuditState:
     final_summary: RequestSummary | None = None
     final_prompt_preview: str = ""
     final_system_preview: str = ""
+    provider_tool_summary: dict[str, Any] | None = None
     mutations: list[MutationRecord] = field(default_factory=list)
     diagnoses: list[str] = field(default_factory=list)
     fixes: list[FixRecord] = field(default_factory=list)
@@ -146,7 +147,7 @@ class TrackedRequestList(list[Any]):
         self._owner.record_mutation(self._state, self._channel, action, values)
 
 
-@register(PLUGIN_ID, "Codex", PLUGIN_DESC, PLUGIN_VERSION, PLUGIN_REPO)
+@register(PLUGIN_ID, "Whereis-Alice", PLUGIN_DESC, PLUGIN_VERSION, PLUGIN_REPO)
 class ContextGuardPlugin(Star):
     """Diagnose context overflow causes and repair empty-message retries."""
 
@@ -262,7 +263,7 @@ class ContextGuardPlugin(Star):
         warn_limit = self._cfg_int("warn_total_chars", 20000)
         log_fn = logger.warning if warn_limit > 0 and total_chars >= warn_limit else logger.info
         log_fn(
-            "[ContextGuard] umo=%s session=%s total_chars=%s prompt=%s system=%s contexts=%s/%s extra=%s tools=%s/%s",
+            "[ContextGuard] umo=%s session=%s total_chars=%s prompt=%s system=%s contexts=%s/%s extra=%s tools_est=%s/%s",
             state.umo,
             state.session_id or PREVIEW_FALLBACK,
             total_chars,
@@ -375,12 +376,20 @@ class ContextGuardPlugin(Star):
         if state is None:
             return
         summary = self._summarize_payload_messages(payloads.get("messages", []) or [])
+        tools_summary = None
+        if self._cfg_bool("record_provider_prepare_tools", True):
+            tools_summary = self._summarize_payload_tools(payloads.get("tools", []) or [])
+            request_summary = state.final_summary or state.initial_summary
+            tools_summary["request_estimated_chars"] = request_summary.tool_chars
+            tools_summary["estimate_delta_chars"] = tools_summary["total_chars"] - request_summary.tool_chars
+            state.provider_tool_summary = tools_summary
         self._append_dump_event(
             state,
             "provider_prepare",
             {
                 "summary": summary,
                 "model": payloads.get("model"),
+                **({"tools_summary": tools_summary} if tools_summary is not None else {}),
             },
         )
 
@@ -733,7 +742,7 @@ class ContextGuardPlugin(Star):
             tool_chars=tool_chars,
             roles=dict(roles),
             longest_message_chars=longest_message_chars,
-            total_chars=prompt_chars + system_prompt_chars + context_chars + extra_parts_chars + tool_chars,
+            total_chars=prompt_chars + system_prompt_chars + context_chars + extra_parts_chars,
         )
 
     def _summarize_payload_messages(self, messages: list[Any]) -> dict[str, Any]:
@@ -773,6 +782,10 @@ class ContextGuardPlugin(Star):
         if final.extra_parts_chars >= self._cfg_int("extra_parts_warn_chars", 8000):
             diagnoses.append(
                 f"extra_user_content_parts 很大（{final.extra_parts_chars} chars），很可能有插件在请求阶段追加了大块动态上下文。"
+            )
+        if final.tool_count > 0 and final.tool_chars >= 200000:
+            diagnoses.append(
+                f"request 工具对象估算体积很大（{final.tool_chars} chars / {final.tool_count} tools），请结合 provider_prepare.tools_summary.total_chars 判断真实上游 tools payload。"
             )
         if final.prompt_chars >= self._cfg_int("single_prompt_warn_chars", 12000) and final.context_message_count <= 1:
             diagnoses.append(
@@ -982,6 +995,100 @@ class ContextGuardPlugin(Star):
             return len(self._safe_json(tool))
         return len(str(tool))
 
+    def _summarize_payload_tools(self, tools: Any) -> dict[str, Any]:
+        if not isinstance(tools, list):
+            tools = [tools] if tools else []
+
+        normalized = [self._ensure_tool_payload_dict(item) for item in tools]
+        total_chars = len(self._safe_json(normalized))
+        tool_entries: list[dict[str, Any]] = []
+
+        for index, item in enumerate(normalized):
+            function_block = item.get("function")
+            if not isinstance(function_block, dict):
+                function_block = {}
+            parameters = function_block.get("parameters")
+            if parameters is None:
+                parameters = item.get("parameters")
+
+            description = function_block.get("description")
+            if description is None:
+                description = item.get("description")
+
+            entry = {
+                "index": index,
+                "name": self._tool_payload_name(item, fallback=f"tool_{index}"),
+                "type": str(item.get("type", "unknown")),
+                "chars": len(self._safe_json(item)),
+                "description_chars": len(str(description or "")),
+                "parameters_chars": len(self._safe_json(parameters)) if parameters is not None else 0,
+                "property_count": self._tool_property_count(parameters),
+                "required_count": self._tool_required_count(parameters),
+            }
+            tool_entries.append(entry)
+
+        top_n = self._cfg_int("provider_prepare_tool_top_n", 12)
+        largest_tools = sorted(tool_entries, key=lambda entry: entry["chars"], reverse=True)
+        if top_n > 0:
+            largest_tools = largest_tools[:top_n]
+
+        return {
+            "count": len(normalized),
+            "total_chars": total_chars,
+            "sum_item_chars": sum(entry["chars"] for entry in tool_entries),
+            "tool_names": [entry["name"] for entry in tool_entries],
+            "largest_tools": largest_tools,
+        }
+
+    def _ensure_tool_payload_dict(self, tool: Any) -> dict[str, Any]:
+        if isinstance(tool, dict):
+            return tool
+        if hasattr(tool, "model_dump"):
+            try:
+                dumped = tool.model_dump()
+                if isinstance(dumped, dict):
+                    return dumped
+            except Exception:
+                pass
+        if hasattr(tool, "dict"):
+            try:
+                dumped = tool.dict()
+                if isinstance(dumped, dict):
+                    return dumped
+            except Exception:
+                pass
+        return {
+            "type": type(tool).__name__,
+            "value": str(tool),
+        }
+
+    def _tool_payload_name(self, item: dict[str, Any], *, fallback: str) -> str:
+        function_block = item.get("function")
+        if isinstance(function_block, dict):
+            name = function_block.get("name")
+            if name:
+                return str(name)
+        name = item.get("name")
+        if name:
+            return str(name)
+        return fallback
+
+    def _tool_property_count(self, parameters: Any) -> int:
+        if not isinstance(parameters, dict):
+            return 0
+        properties = parameters.get("properties")
+        if isinstance(properties, dict):
+            return len(properties)
+        return 0
+
+    def _tool_required_count(self, parameters: Any) -> int:
+        if not isinstance(parameters, dict):
+            return 0
+        required = parameters.get("required")
+        if isinstance(required, list):
+            return len(required)
+        return 0
+
     def _ensure_message_dict(self, message: Any) -> dict[str, Any]:
         if isinstance(message, dict):
             return message
@@ -1102,9 +1209,22 @@ class ContextGuardPlugin(Star):
                 f"system={final.system_prompt_chars}, "
                 f"context={final.context_chars} ({final.context_message_count} msgs), "
                 f"extra={final.extra_parts_chars}, "
-                f"tools={final.tool_count}/{final.tool_chars}"
+                f"tools_est={final.tool_count}/{final.tool_chars}"
             ),
         ]
+        if state.provider_tool_summary:
+            provider_tools = state.provider_tool_summary
+            lines.append(
+                "provider_tools: "
+                f"{provider_tools.get('count', 0)}/{provider_tools.get('total_chars', 0)} actual chars"
+            )
+            largest_tools = provider_tools.get("largest_tools", [])
+            if largest_tools:
+                top_preview = ", ".join(
+                    f"{item.get('name', PREVIEW_FALLBACK)}({item.get('chars', 0)})"
+                    for item in largest_tools[:3]
+                )
+                lines.append(f"provider_tools_top: {top_preview}")
         if state.diagnoses:
             lines.append("diagnoses: " + " | ".join(state.diagnoses))
         if state.fixes:

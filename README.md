@@ -1,59 +1,16 @@
 # astrbot_plugin_context_guard
 
-用于排查 AstrBot 在 OpenAI / OpenAI 兼容 Provider 上出现的这类问题：
+Runtime diagnostics for AstrBot OpenAI-style providers.
 
-- `上下文长度超过限制`
-- 随后的重试把 `messages` 删空
-- 上游返回 `field messages is required`
+This plugin helps track down issues such as:
 
-插件做两件事：
+- context overflow caused by prompt, system prompt, history, dynamic injections, or tools
+- provider retry branches that accidentally drop every non-system message
+- follow-up upstream errors like `field messages is required`
 
-1. 诊断
+## What it records
 
-- 在 `on_llm_request` 早晚各抓一次 `ProviderRequest`
-- 记录 `prompt`、`system_prompt`、`contexts`、`extra_user_content_parts` 的字符量变化
-- 跟踪 `request.contexts` / `request.extra_user_content_parts` 在 hook 阶段被谁追加过内容
-- 在 OpenAI provider 的 `_prepare_chat_payload`、`_handle_api_error` 阶段继续写 dump，看到真实 `messages` 是怎么变化的
-
-2. 兜底修复
-
-- 当 provider 因 `context length` 进入重试分支，并把 `messages` 删到只剩 system 或完全为空时：
-  - 优先裁剪过长的 system 消息
-  - 保留最后一条非 system 消息
-  - 必要时补一条最小 user 占位消息
-
-这能直接拦住后续的 `field messages is required`。
-
-## 目录结构
-
-```text
-astrbot_plugin_context_guard/
-├── main.py
-├── metadata.yaml
-├── _conf_schema.json
-├── requirements.txt
-├── README.md
-├── LICENSE
-└── .gitignore
-```
-
-## 使用方式
-
-把整个 `astrbot_plugin_context_guard` 目录放进 AstrBot 插件目录并启用。
-
-启用后：
-
-- 看控制台日志里的 `[ContextGuard] ...`
-- 用命令 `context_guard_status` 查看当前会话最近一次捕获摘要
-- 用命令 `context_guard_dump` 查看 dump 路径
-
-## Dump 内容
-
-插件数据目录下会生成：
-
-- `requests/<hash>-<request_id>/events.jsonl`
-
-里面会按时间顺序记录：
+The plugin captures request state at multiple stages:
 
 - `request_early`
 - `request_late`
@@ -61,29 +18,113 @@ astrbot_plugin_context_guard/
 - `provider_prepare`
 - `provider_error`
 
-重点看这两个阶段：
+For each request it can summarize:
 
+- `prompt`
+- `system_prompt`
+- `contexts`
+- `extra_user_content_parts`
+- request-stage tool object estimates
+- mutations made by hooks during `on_llm_request`
+
+It also patches the OpenAI-style provider at runtime so we can see what the final payload looks like right before it is sent upstream.
+
+## Commands
+
+- `context_guard_status`
+  Shows the latest captured summary for the current conversation.
+- `context_guard_dump`
+  Shows the dump directory for the latest captured request.
+
+## Dump layout
+
+Per-request files are written under:
+
+```text
+requests/<umo-hash>-<request_id>/events.jsonl
+```
+
+The most useful events are:
+
+- `request_late`
+  Tells you what hooks changed before provider preparation.
 - `provider_prepare`
-  这里能看到最终要发给上游的 `messages` 数量、角色分布和字符量
+  Tells you what the final upstream payload looks like.
 - `provider_error`
-  这里能看到 context overflow 处理前后的变化，以及插件是否执行了修复动作
+  Tells you what changed after provider overflow/error handling.
 
-## 推荐排查顺序
+## Provider tools summary
 
-1. 先复现一次问题
-2. 运行 `context_guard_status`
-3. 打开 `context_guard_dump` 给出的目录，查看 `events.jsonl`
-4. 对比：
-   - `request_early` 到 `request_late` 是否出现了异常大的增长
-   - `provider_prepare` 的 `messages` 是否已经极大
-   - `provider_error` 里是不是在 overflow 后丢光了非 system 消息
+When `record_provider_prepare_tools` is enabled, `provider_prepare` also records real statistics for `payloads["tools"]`:
 
-## 兼容性
+- `tools_summary.count`
+  Actual tool count in the prepared provider payload.
+- `tools_summary.total_chars`
+  Actual serialized character count of the final tools payload.
+- `tools_summary.tool_names`
+  Full tool name list in payload order.
+- `tools_summary.largest_tools`
+  Largest tools sorted by actual JSON size.
 
-- 目标版本：`astrbot >= 4.16, < 5`
-- 重点覆盖 OpenAI 风格 Provider（`ProviderOpenAIOfficial` 及其子类）
+Each entry in `largest_tools` includes:
 
-## 说明
+- `name`
+- `type`
+- `chars`
+- `description_chars`
+- `parameters_chars`
+- `property_count`
+- `required_count`
 
-这是一个运行时诊断插件，会对 OpenAI provider 做轻量 monkey patch。
-如果你停用或卸载插件，patch 会在插件卸载时恢复。
+This is intentionally separate from the request-stage `tools_est=...` value shown in logs and status:
+
+- `tools_est`
+  An estimate based on local tool objects attached to the request before provider serialization.
+- `provider_prepare.tools_summary.total_chars`
+  The real serialized size of the final tools payload prepared for upstream.
+
+If these two numbers are far apart, the request-stage estimate was a false lead and the actual upstream tools payload is probably not the root cause.
+
+## Recommended workflow
+
+1. Reproduce the problem once.
+2. Run `context_guard_status`.
+3. Run `context_guard_dump`.
+4. Open `events.jsonl`.
+5. Compare:
+   - `request_early` vs `request_late`
+   - `request_late` vs `provider_prepare`
+   - `provider_prepare` vs `provider_error`
+
+For tool-related cases, check:
+
+- whether `tools_est` is huge only before provider serialization
+- whether `provider_prepare.tools_summary.total_chars` is also huge
+- which tools appear at the top of `largest_tools`
+- whether `parameters_chars` rather than `description_chars` is driving the size
+
+## Useful config switches
+
+- `record_provider_prepare_tools`
+  Enable or disable real payload tool analysis in `provider_prepare`.
+- `provider_prepare_tool_top_n`
+  Control how many tools are kept in the size ranking.
+- `auto_fix_empty_messages_after_overflow`
+  Rebuild a minimal safe retry payload when overflow handling empties every non-system message.
+
+## Compatibility
+
+- `astrbot >= 4.16, < 5`
+- focused on `ProviderOpenAIOfficial` and compatible subclasses
+
+## Custom plugin source
+
+If you want AstrBot to detect updates for this plugin without publishing to the official market, add this registry URL as a custom plugin source:
+
+- `https://raw.githubusercontent.com/Whereis-Alice/astrbot_plugin_context_guard/main/plugins.json`
+
+If the plugin was previously installed manually, AstrBot may not automatically bind it to the new source. In that case, reinstall it from the custom source, or bind the existing install to that source if your AstrBot build exposes source binding in the plugin manager.
+
+## Notes
+
+This plugin uses lightweight runtime monkey patches for diagnostics and overflow retry repair. The patches are restored when the plugin unloads.
