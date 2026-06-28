@@ -1,16 +1,16 @@
 # astrbot_plugin_context_guard
 
-Runtime diagnostics for AstrBot OpenAI-style providers.
+用于排查 AstrBot 的 OpenAI 风格 Provider 上下文爆掉问题，并在 overflow 重试把 `messages` 删空时做兜底修复。
 
-This plugin helps track down issues such as:
+这个插件主要帮你定位下面几类问题：
 
-- context overflow caused by prompt, system prompt, history, dynamic injections, or tools
-- provider retry branches that accidentally drop every non-system message
-- follow-up upstream errors like `field messages is required`
+- `prompt`、`system_prompt`、历史消息、动态注入内容、tools 中到底是谁把上下文撑爆了
+- overflow 重试分支误删所有非 system 消息，最终触发 `field messages is required`
+- hook 链路里是谁改了请求内容，改了多少
 
-## What it records
+## 插件会记录什么
 
-The plugin captures request state at multiple stages:
+插件会在多个阶段记录同一请求的状态：
 
 - `request_early`
 - `request_late`
@@ -18,55 +18,55 @@ The plugin captures request state at multiple stages:
 - `provider_prepare`
 - `provider_error`
 
-For each request it can summarize:
+每次请求会统计这些内容：
 
 - `prompt`
 - `system_prompt`
 - `contexts`
 - `extra_user_content_parts`
-- request-stage tool object estimates
-- mutations made by hooks during `on_llm_request`
+- 请求阶段的 tool 体积估算值
+- `on_llm_request` 阶段发生的变更记录
 
-It also patches the OpenAI-style provider at runtime so we can see what the final payload looks like right before it is sent upstream.
+它还会在运行时给 OpenAI 风格 Provider 打轻量补丁，用来观察真正发给上游之前的最终 payload 长什么样。
 
-## Commands
+## 命令
 
 - `context_guard_status`
-  Shows the latest captured summary for the current conversation.
+  查看当前会话最近一次抓到的摘要
 - `context_guard_dump`
-  Shows the dump directory for the latest captured request.
+  查看最近一次请求对应的 dump 目录
 
-## Dump layout
+## Dump 文件位置
 
-Per-request files are written under:
+每次请求的记录会写到：
 
 ```text
 requests/<umo-hash>-<request_id>/events.jsonl
 ```
 
-The most useful events are:
+最值得优先看的事件：
 
 - `request_late`
-  Tells you what hooks changed before provider preparation.
+  看 hook 链路在 provider_prepare 之前改了什么
 - `provider_prepare`
-  Tells you what the final upstream payload looks like.
+  看最终发往上游的 payload 长什么样
 - `provider_error`
-  Tells you what changed after provider overflow/error handling.
+  看 overflow 或报错后，请求又发生了什么变化
 
-## Provider tools summary
+## provider_prepare 的 tools 真实体积统计
 
-When `record_provider_prepare_tools` is enabled, `provider_prepare` also records real statistics for `payloads["tools"]`:
+当 `record_provider_prepare_tools` 开启时，`provider_prepare` 会额外记录 `payloads["tools"]` 的真实统计结果：
 
 - `tools_summary.count`
-  Actual tool count in the prepared provider payload.
+  最终 payload 里的真实工具数量
 - `tools_summary.total_chars`
-  Actual serialized character count of the final tools payload.
+  最终 tools JSON 序列化后的真实总字符数
 - `tools_summary.tool_names`
-  Full tool name list in payload order.
+  按实际 payload 顺序记录的工具名列表
 - `tools_summary.largest_tools`
-  Largest tools sorted by actual JSON size.
+  按真实 JSON 体积从大到小排序的工具列表
 
-Each entry in `largest_tools` includes:
+`largest_tools` 里的每一项会带这些字段：
 
 - `name`
 - `type`
@@ -76,55 +76,59 @@ Each entry in `largest_tools` includes:
 - `property_count`
 - `required_count`
 
-This is intentionally separate from the request-stage `tools_est=...` value shown in logs and status:
+这部分和日志/状态里的 `tools_est=...` 是分开的，含义不一样：
 
 - `tools_est`
-  An estimate based on local tool objects attached to the request before provider serialization.
+  请求对象在 provider 序列化之前，对本地 tool 对象做出的估算值
 - `provider_prepare.tools_summary.total_chars`
-  The real serialized size of the final tools payload prepared for upstream.
+  真正准备发给上游时，最终 tools payload 的实际字符数
 
-If these two numbers are far apart, the request-stage estimate was a false lead and the actual upstream tools payload is probably not the root cause.
+如果这两个数字差很大，说明“tool 很大”可能只是前期估算假象，真正的根因未必在最终 tools payload。
 
-## Recommended workflow
+## 推荐排查流程
 
-1. Reproduce the problem once.
-2. Run `context_guard_status`.
-3. Run `context_guard_dump`.
-4. Open `events.jsonl`.
-5. Compare:
-   - `request_early` vs `request_late`
-   - `request_late` vs `provider_prepare`
-   - `provider_prepare` vs `provider_error`
+1. 先稳定复现一次问题
+2. 执行 `context_guard_status`
+3. 执行 `context_guard_dump`
+4. 打开 `events.jsonl`
+5. 重点对比下面几组阶段：
 
-For tool-related cases, check:
+- `request_early` 和 `request_late`
+- `request_late` 和 `provider_prepare`
+- `provider_prepare` 和 `provider_error`
 
-- whether `tools_est` is huge only before provider serialization
-- whether `provider_prepare.tools_summary.total_chars` is also huge
-- which tools appear at the top of `largest_tools`
-- whether `parameters_chars` rather than `description_chars` is driving the size
+如果怀疑是 tools 引发的问题，重点看：
 
-## Useful config switches
+- `tools_est` 是不是只在 provider 序列化前看起来很大
+- `provider_prepare.tools_summary.total_chars` 是不是真的也很大
+- `largest_tools` 里到底是哪几个 tool 最肥
+- 体积主要来自 `parameters_chars` 还是 `description_chars`
+
+## 常用配置项
 
 - `record_provider_prepare_tools`
-  Enable or disable real payload tool analysis in `provider_prepare`.
+  是否记录 `provider_prepare` 阶段真实的 tools payload 统计
 - `provider_prepare_tool_top_n`
-  Control how many tools are kept in the size ranking.
+  `largest_tools` 最多保留多少个 tool
 - `auto_fix_empty_messages_after_overflow`
-  Rebuild a minimal safe retry payload when overflow handling empties every non-system message.
+  当 overflow 重试把所有非 system 消息删空时，自动构造一个最小安全重试请求
 
-## Compatibility
+## 兼容性
 
 - `astrbot >= 4.16, < 5`
-- focused on `ProviderOpenAIOfficial` and compatible subclasses
+- 重点适配 `ProviderOpenAIOfficial` 及其兼容子类
 
-## Custom plugin source
+## 自定义插件源
 
-If you want AstrBot to detect updates for this plugin without publishing to the official market, add this registry URL as a custom plugin source:
+如果你没有把插件发到官方市场，但又想让 AstrBot 识别更新，可以在 AstrBot 的“添加插件源”里填这个地址：
 
 - `https://raw.githubusercontent.com/Whereis-Alice/astrbot_plugin_context_guard/main/plugins.json`
 
-If the plugin was previously installed manually, AstrBot may not automatically bind it to the new source. In that case, reinstall it from the custom source, or bind the existing install to that source if your AstrBot build exposes source binding in the plugin manager.
+如果这个插件之前是手动安装的，AstrBot 不一定会自动把它绑定到这个新源。遇到这种情况，通常有两种处理方式：
 
-## Notes
+- 直接从这个自定义源重新安装一次
+- 如果你的 AstrBot 版本支持“绑定插件源”，就把现有安装绑定到这个源
 
-This plugin uses lightweight runtime monkey patches for diagnostics and overflow retry repair. The patches are restored when the plugin unloads.
+## 说明
+
+这个插件使用的是轻量级运行时 monkey patch，目标是尽量少侵入地抓取诊断信息，并修复 overflow 后 `messages` 被删空导致的重试异常。插件卸载时会恢复补丁。
