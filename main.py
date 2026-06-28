@@ -19,7 +19,7 @@ from astrbot.api.star import Context, Star, StarTools, register
 
 
 PLUGIN_ID = "astrbot_plugin_context_guard"
-PLUGIN_VERSION = "0.1.1"
+PLUGIN_VERSION = "0.1.2"
 PLUGIN_DESC = "诊断上下文过长根因，记录 payload 演变，并修复 overflow 后 messages 被删空的重试问题"
 PLUGIN_REPO = "https://github.com/Whereis-Alice/astrbot_plugin_context_guard"
 
@@ -85,6 +85,7 @@ class RequestAuditState:
     final_summary: RequestSummary | None = None
     final_prompt_preview: str = ""
     final_system_preview: str = ""
+    provider_message_summary: dict[str, Any] | None = None
     provider_tool_summary: dict[str, Any] | None = None
     mutations: list[MutationRecord] = field(default_factory=list)
     diagnoses: list[str] = field(default_factory=list)
@@ -376,12 +377,14 @@ class ContextGuardPlugin(Star):
         if state is None:
             return
         summary = self._summarize_payload_messages(payloads.get("messages", []) or [])
+        state.provider_message_summary = summary
         tools_summary = None
         if self._cfg_bool("record_provider_prepare_tools", True):
             tools_summary = self._summarize_payload_tools(payloads.get("tools", []) or [])
             request_summary = state.final_summary or state.initial_summary
             tools_summary["request_estimated_chars"] = request_summary.tool_chars
             tools_summary["estimate_delta_chars"] = tools_summary["total_chars"] - request_summary.tool_chars
+            tools_summary["note"] = self._diagnose_provider_tool_summary(tools_summary)
             state.provider_tool_summary = tools_summary
         self._append_dump_event(
             state,
@@ -392,6 +395,7 @@ class ContextGuardPlugin(Star):
                 **({"tools_summary": tools_summary} if tools_summary is not None else {}),
             },
         )
+        self._log_provider_prepare_summary(state, payloads.get("model"), summary, tools_summary)
 
     def on_provider_api_error_handled(
         self,
@@ -1040,6 +1044,70 @@ class ContextGuardPlugin(Star):
             "largest_tools": largest_tools,
         }
 
+    def _diagnose_provider_tool_summary(self, tools_summary: dict[str, Any]) -> str:
+        actual = int(tools_summary.get("total_chars", 0) or 0)
+        estimated = int(tools_summary.get("request_estimated_chars", 0) or 0)
+        tool_count = int(tools_summary.get("count", 0) or 0)
+
+        if estimated > 0 and tool_count == 0 and actual == 0:
+            return "provider_prepare 最终没有携带 tools，request 阶段的 tools_est 不是根因。"
+        if actual >= 200000:
+            return f"真实上游 tools payload 很大（{actual} chars），需要重点检查 largest_tools。"
+        if estimated >= 200000 and actual <= max(20000, estimated // 20):
+            return (
+                f"request 阶段的 tools_est 明显偏大（est={estimated}, actual={actual}），"
+                "真实上游 tools payload 小得多，tools 很可能不是主要根因。"
+            )
+        if estimated > 0 and actual == 0:
+            return "provider_prepare 最终 tools payload 为空，request 阶段的 tools_est 不是根因。"
+        return ""
+
+    def _log_provider_prepare_summary(
+        self,
+        state: RequestAuditState,
+        model: Any,
+        message_summary: dict[str, Any],
+        tools_summary: dict[str, Any] | None,
+    ) -> None:
+        if not self._cfg_bool("log_provider_prepare_summary", True):
+            return
+
+        request_summary = state.final_summary or state.initial_summary
+        warn_limit = self._cfg_int("warn_total_chars", 20000)
+        message_total = int(message_summary.get("total_chars", 0) or 0)
+        tool_count = int((tools_summary or {}).get("count", 0) or 0)
+        tool_total = int((tools_summary or {}).get("total_chars", 0) or 0)
+        estimate_delta = int((tools_summary or {}).get("estimate_delta_chars", 0) or 0)
+        use_warning = (
+            (warn_limit > 0 and max(request_summary.total_chars, message_total) >= warn_limit)
+            or request_summary.tool_chars >= 200000
+            or tool_total >= 200000
+        )
+        log_fn = logger.warning if use_warning else logger.info
+        log_fn(
+            "[ContextGuard] provider_prepare model=%s messages=%s/%s longest=%s tools=%s/%s est_delta=%+s",
+            model or PREVIEW_FALLBACK,
+            message_summary.get("message_count", 0),
+            message_total,
+            message_summary.get("longest_message_chars", 0),
+            tool_count,
+            tool_total,
+            estimate_delta,
+        )
+
+        note = str((tools_summary or {}).get("note", "") or "").strip()
+        if note:
+            log_fn("[ContextGuard] provider_prepare verdict: %s", note)
+
+        largest_tools = (tools_summary or {}).get("largest_tools", []) or []
+        top_n = self._cfg_int("provider_prepare_log_top_n", 3)
+        if top_n > 0 and largest_tools:
+            preview = ", ".join(
+                f"{item.get('name', PREVIEW_FALLBACK)}({item.get('chars', 0)},params={item.get('parameters_chars', 0)},desc={item.get('description_chars', 0)})"
+                for item in largest_tools[:top_n]
+            )
+            log_fn("[ContextGuard] provider_prepare top_tools: %s", preview)
+
     def _ensure_tool_payload_dict(self, tool: Any) -> dict[str, Any]:
         if isinstance(tool, dict):
             return tool
@@ -1218,6 +1286,9 @@ class ContextGuardPlugin(Star):
                 "provider_tools: "
                 f"{provider_tools.get('count', 0)}/{provider_tools.get('total_chars', 0)} actual chars"
             )
+            note = str(provider_tools.get("note", "") or "").strip()
+            if note:
+                lines.append(f"provider_tools_note: {note}")
             largest_tools = provider_tools.get("largest_tools", [])
             if largest_tools:
                 top_preview = ", ".join(
@@ -1225,6 +1296,12 @@ class ContextGuardPlugin(Star):
                     for item in largest_tools[:3]
                 )
                 lines.append(f"provider_tools_top: {top_preview}")
+        if state.provider_message_summary:
+            provider_messages = state.provider_message_summary
+            lines.append(
+                "provider_messages: "
+                f"{provider_messages.get('message_count', 0)}/{provider_messages.get('total_chars', 0)} actual chars"
+            )
         if state.diagnoses:
             lines.append("diagnoses: " + " | ".join(state.diagnoses))
         if state.fixes:

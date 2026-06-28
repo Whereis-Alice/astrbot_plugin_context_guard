@@ -1,6 +1,6 @@
 name: astrbot_plugin_context_guard
 display_name: 上下文守卫
-version: 0.1.1
+version: 0.1.2
 author: Whereis-Alice
 desc: 诊断上下文过长根因，记录 OpenAI payload 演变，并修复 overflow 后 messages 被删空的重试问题。
 short_desc: 上下文过长诊断与兜底修复

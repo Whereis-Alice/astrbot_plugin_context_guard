@@ -48,6 +48,12 @@
     "hint": "开启后会把真实 tools JSON 总字符数、工具名列表和体积最大的 tool 排行写进 provider_prepare dump。",
     "default": true
   },
+  "log_provider_prepare_summary": {
+    "type": "bool",
+    "description": "鏄惁鍦ㄦ棩蹇椾腑鐩存帴杈撳嚭 provider_prepare 闃舵鐨勭湡瀹炴憳瑕併€?",
+    "hint": "寮€鍚悗浼氱洿鎺ユ墦鍗°乵essages 鐨勫疄闄呭瓧绗︽暟銆乼ools 鐨勫疄闄呭瓧绗︽暟銆佷及绠楀樊鍊煎拰鏈€澶?tool 鎺掕锛屼笉鐢ㄥ厛缈?dump銆?",
+    "default": true
+  },
   "provider_prepare_tool_top_n": {
     "type": "int",
     "description": "provider_prepare 工具体积排行保留前多少项。",
@@ -55,6 +61,14 @@
     "default": 12,
     "min": 1,
     "max": 100
+  },
+  "provider_prepare_log_top_n": {
+    "type": "int",
+    "description": "provider_prepare 鏃ュ織閲屾渶澶氬睍绀哄墠澶氬皯涓?tool 鎺掕銆?",
+    "hint": "鐢ㄤ簬鏃ュ織閲岀殑 top_tools 棰勮锛岄伩鍏嶄竴娆℃墦鍗板お澶氥€?",
+    "default": 3,
+    "min": 0,
+    "max": 20
   },
   "mutation_log_limit": {
     "type": "int",

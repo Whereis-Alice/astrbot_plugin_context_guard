@@ -85,6 +85,14 @@ requests/<umo-hash>-<request_id>/events.jsonl
 
 如果这两个数字差很大，说明“tool 很大”可能只是前期估算假象，真正的根因未必在最终 tools payload。
 
+从 `0.1.2` 开始，如果 `log_provider_prepare_summary` 开启，插件还会直接把 `provider_prepare` 的真实摘要打印到日志里，包括：
+
+- `messages` 的真实总字符数
+- `tools` 的真实总字符数
+- `tools_est` 和真实 tools payload 的差值
+- `top_tools` 预览
+- 一句简短结论，告诉你 tools 到底像不像根因
+
 ## 推荐排查流程
 
 1. 先稳定复现一次问题
@@ -108,8 +116,12 @@ requests/<umo-hash>-<request_id>/events.jsonl
 
 - `record_provider_prepare_tools`
   是否记录 `provider_prepare` 阶段真实的 tools payload 统计
+- `log_provider_prepare_summary`
+  是否把 `provider_prepare` 的真实摘要直接输出到日志
 - `provider_prepare_tool_top_n`
   `largest_tools` 最多保留多少个 tool
+- `provider_prepare_log_top_n`
+  日志里的 `top_tools` 最多显示多少个 tool
 - `auto_fix_empty_messages_after_overflow`
   当 overflow 重试把所有非 system 消息删空时，自动构造一个最小安全重试请求
 
