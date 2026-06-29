@@ -1,12 +1,34 @@
 {
   "$meta": {
     "schema_version": 1,
-    "name": "Whereis-Alice Plugin Source",
-    "version": "2026-06-28",
+    "name": "Whereis-Alice AstrBot Plugin Source",
+    "version": "2026-06-29",
     "homepage": "https://github.com/Whereis-Alice/astrbot_plugin_context_guard",
     "repository": "https://github.com/Whereis-Alice/astrbot_plugin_context_guard",
-    "description": "Custom AstrBot plugin source for Whereis-Alice plugins.",
-    "updated_at": "2026-06-28T00:00:00Z"
+    "description": "Custom AstrBot plugin source for public plugins maintained in the Whereis-Alice workspace.",
+    "updated_at": "2026-06-29T00:00:00Z"
+  },
+  "Whereis-Alice/astrbot_plugin_blacksouls_mojibake": {
+    "author": "Huli3",
+    "name": "astrbot_plugin_blacksouls_mojibake",
+    "display_name": "BLACKSOULS 乱码转换",
+    "version": "v0.2.8",
+    "repo": "https://github.com/Whereis-Alice/astrbot_plugin_blacksouls_mojibake",
+    "download_url": "https://github.com/Whereis-Alice/astrbot_plugin_blacksouls_mojibake/archive/refs/heads/main.zip",
+    "desc": "奈亚语转换工具：中文与 CP932/Shift-JIS 风格乱码互转，并支持爱丽丝里德尔触发后转换人格回复。",
+    "astrbot_version": ">=4.16,<5",
+    "updated_at": "2026-06-29T00:00:00Z"
+  },
+  "Whereis-Alice/astrbot_plugin_context_scene_memory": {
+    "author": "Huli3（fork 自 木有知）",
+    "name": "astrbot_plugin_context_scene_memory",
+    "display_name": "上下文场景记忆增强",
+    "version": "3.2.1",
+    "repo": "https://github.com/Whereis-Alice/astrbot_plugin_context_scene_memory",
+    "download_url": "https://github.com/Whereis-Alice/astrbot_plugin_context_scene_memory/archive/refs/heads/main.zip",
+    "desc": "增强群聊场景理解与上下文连续性，减少抢答、误判和“聊两句就忘”的问题",
+    "astrbot_version": ">=4.24.0",
+    "updated_at": "2026-06-29T00:00:00Z"
   },
   "Whereis-Alice/astrbot_plugin_context_guard": {
     "author": "Whereis-Alice",
@@ -18,12 +40,105 @@
     "desc": "诊断上下文过长根因，记录 OpenAI payload 演变，并修复 overflow 后 messages 被删空的重试问题。",
     "short_desc": "上下文过长诊断与兜底修复",
     "astrbot_version": ">=4.16,<5",
-    "tags": [
-      "debug",
-      "provider",
-      "context",
-      "openai"
-    ],
-    "updated_at": "2026-06-28T00:00:00Z"
+    "updated_at": "2026-06-29T00:00:00Z"
+  },
+  "Whereis-Alice/astrbot_plugin_dynamic_card_plus": {
+    "author": "Huli3",
+    "name": "astrbot_plugin_dynamic_card_plus",
+    "display_name": "Dynamic Card Plus",
+    "version": "v0.8.9",
+    "repo": "https://github.com/Whereis-Alice/astrbot_plugin_dynamic_card_plus",
+    "download_url": "https://github.com/Whereis-Alice/astrbot_plugin_dynamic_card_plus/archive/refs/heads/main.zip",
+    "desc": "增强版动态群名片插件，支持系统信息、日程、想法摘要、随心后缀和 LLM 主动改名片",
+    "astrbot_version": ">=4.16,<5",
+    "updated_at": "2026-06-29T00:00:00Z"
+  },
+  "Whereis-Alice/astrbot_plugin_genie_tts_llm": {
+    "author": "Whereis-Alice",
+    "name": "astrbot_plugin_genie_tts_llm",
+    "display_name": "Genie TTS LLM",
+    "version": "1.6.7",
+    "repo": "https://github.com/Whereis-Alice/astrbot_plugin_genie_tts_llm",
+    "download_url": "https://github.com/Whereis-Alice/astrbot_plugin_genie_tts_llm/archive/refs/heads/main.zip",
+    "desc": "一个基于 Genie TTS 的 LLM 回复语音合成插件，支持多角色、多感情、翻译、情感识别、主动语音工具、可配置工具提示注入和触发频率。",
+    "updated_at": "2026-06-29T00:00:00Z"
+  },
+  "Whereis-Alice/astrbot_plugin_gif_frame_vision": {
+    "author": "YanL, Whereis-Alice",
+    "name": "astrbot_plugin_gif_frame_vision",
+    "display_name": "GIF Frame Vision",
+    "version": "0.7.6",
+    "repo": "https://github.com/Whereis-Alice/astrbot_plugin_gif_frame_vision",
+    "download_url": "https://github.com/Whereis-Alice/astrbot_plugin_gif_frame_vision/archive/refs/heads/main.zip",
+    "desc": "将 GIF 动图抽帧为静态图，增强多模态视觉理解",
+    "short_desc": "GIF 抽帧增强多模态识别",
+    "astrbot_version": ">=4.16,<5",
+    "updated_at": "2026-06-29T00:00:00Z"
+  },
+  "Whereis-Alice/astrbot_plugin_harassment_reporter": {
+    "author": "Huli3",
+    "name": "astrbot_plugin_harassment_reporter",
+    "display_name": "骚扰上报器",
+    "version": "1.2.4",
+    "repo": "https://github.com/Whereis-Alice/astrbot_plugin_harassment_reporter",
+    "download_url": "https://github.com/Whereis-Alice/astrbot_plugin_harassment_reporter/archive/refs/heads/main.zip",
+    "desc": "给 LLM 提供一个可主动调用的工具，在它感觉被骚扰时向指定会话上报情况，并支持静默、警告、观察名单等策略",
+    "astrbot_version": ">=4.16,<5",
+    "updated_at": "2026-06-29T00:00:00Z"
+  },
+  "Whereis-Alice/astrbot_plugin_image_injection_auditor": {
+    "author": "Whereis-Alice",
+    "name": "astrbot_plugin_image_injection_auditor",
+    "display_name": "图片注入审计器",
+    "version": "0.2.0",
+    "repo": "https://github.com/Whereis-Alice/astrbot_plugin_image_injection_auditor",
+    "download_url": "https://github.com/Whereis-Alice/astrbot_plugin_image_injection_auditor/archive/refs/heads/main.zip",
+    "desc": "审计每次 AstrBot LLM 请求中的图片数量、来源插件，并在发送前移除无法解析的坏图。",
+    "short_desc": "统计图片来源并清理坏图",
+    "astrbot_version": ">=4.16,<5",
+    "updated_at": "2026-06-29T00:00:00Z"
+  },
+  "Whereis-Alice/astrbot_plugin_minebuddy": {
+    "author": "Jason.Joestar",
+    "name": "astrbot_plugin_minebuddy",
+    "version": "1.3.1",
+    "repo": "https://github.com/Whereis-Alice/astrbot_plugin_minebuddy",
+    "download_url": "https://github.com/Whereis-Alice/astrbot_plugin_minebuddy/archive/refs/heads/main.zip",
+    "desc": "MineBuddy Minecraft Bot 插件，将 MC Bot 能力集成到 AstrBot，支持群聊与 MC 上下文互通，让 Bot 真正能操控角色游玩 MC",
+    "updated_at": "2026-06-29T00:00:00Z"
+  },
+  "Whereis-Alice/astrbot_plugin_profile_weaver": {
+    "author": "Whereis-Alice",
+    "name": "astrbot_plugin_profile_weaver",
+    "display_name": "画像织谱",
+    "version": "v2.1.0",
+    "repo": "https://github.com/Whereis-Alice/astrbot_plugin_profile_weaver",
+    "download_url": "https://github.com/Whereis-Alice/astrbot_plugin_profile_weaver/archive/refs/heads/main.zip",
+    "desc": "更安全的用户画像记忆插件，使用 LLM 工具显式维护当前说话人的画像，并支持每用户自定义字段。",
+    "astrbot_version": ">=4.16,<5",
+    "updated_at": "2026-06-29T00:00:00Z"
+  },
+  "Whereis-Alice/astrbot_plugin_video_vision_helper": {
+    "author": "Whereis-Alice",
+    "name": "astrbot_plugin_video_vision_helper",
+    "display_name": "视频视觉助手",
+    "version": "0.4.4",
+    "repo": "https://github.com/Whereis-Alice/astrbot_plugin_video_vision_helper",
+    "download_url": "https://github.com/Whereis-Alice/astrbot_plugin_video_vision_helper/archive/refs/heads/main.zip",
+    "desc": "将视频拆解为关键帧、分段音频与可选转写文本，并支持长视频分段、资源预算保护、插件临时文件清理与临时帧注入",
+    "short_desc": "视频抽帧、长视频分段、STT 转写与临时帧注入",
+    "astrbot_version": ">=4.16,<5",
+    "updated_at": "2026-06-29T00:00:00Z"
+  },
+  "Whereis-Alice/astrbot_plugin_xiangqi_arena": {
+    "author": "Whereis-Alice, based on zxx624",
+    "name": "astrbot_plugin_xiangqi_arena",
+    "display_name": "象棋竞技场",
+    "version": "3.5.3",
+    "repo": "https://github.com/Whereis-Alice/astrbot_plugin_xiangqi_arena",
+    "download_url": "https://github.com/Whereis-Alice/astrbot_plugin_xiangqi_arena/archive/refs/heads/main.zip",
+    "desc": "支持高级独立 WebUI、Pikafish HTTP、Pikafish、xqwlight、builtin 多引擎降级、低配服务器优化和简化走棋指令的 AstrBot 中国象棋插件",
+    "astrbot_version": ">=4.24,<5",
+    "updated_at": "2026-06-29T00:00:00Z"
   }
 }
