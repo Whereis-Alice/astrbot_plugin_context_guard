@@ -2,11 +2,11 @@
   "$meta": {
     "schema_version": 1,
     "name": "Whereis-Alice AstrBot Plugin Source",
-    "version": "2026-06-30",
+    "version": "2026-07-02",
     "homepage": "https://github.com/Whereis-Alice/astrbot_plugin_context_guard",
     "repository": "https://github.com/Whereis-Alice/astrbot_plugin_context_guard",
     "description": "Custom AstrBot plugin source for public plugins maintained in the Whereis-Alice workspace.",
-    "updated_at": "2026-06-30T00:00:00Z"
+    "updated_at": "2026-07-02T12:20:00Z"
   },
   "Whereis-Alice/astrbot_plugin_blacksouls_mojibake": {
     "author": "Huli3",
@@ -117,6 +117,16 @@
     "desc": "更安全的用户画像记忆插件，使用 LLM 工具显式维护当前说话人的画像，并支持每用户自定义字段。",
     "astrbot_version": ">=4.16,<5",
     "updated_at": "2026-06-29T00:00:00Z"
+  },
+  "Whereis-Alice/astrbot_plugin_outputpro_split": {
+    "author": "Huli3",
+    "name": "astrbot_plugin_outputpro_split",
+    "display_name": "输出增强 Split",
+    "version": "v2.3.0-fork.1",
+    "repo": "https://github.com/Whereis-Alice/astrbot_plugin_outputpro_split",
+    "download_url": "https://github.com/Whereis-Alice/astrbot_plugin_outputpro_split/archive/refs/heads/main.zip",
+    "desc": "OutputPro fork：保留输出增强管道，并基于 astrbot_plugin_splitter 优化分段回复模块，使用独立插件标识避免与上游冲突",
+    "updated_at": "2026-07-02T12:11:33Z"
   },
   "Whereis-Alice/astrbot_plugin_tshock_bridge": {
     "author": "Whereis-Alice",
