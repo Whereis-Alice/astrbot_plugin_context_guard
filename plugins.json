@@ -2,11 +2,11 @@
   "$meta": {
     "schema_version": 1,
     "name": "Whereis-Alice AstrBot Plugin Source",
-    "version": "2026-07-02",
+    "version": "2026-07-05",
     "homepage": "https://github.com/Whereis-Alice/astrbot_plugin_context_guard",
     "repository": "https://github.com/Whereis-Alice/astrbot_plugin_context_guard",
     "description": "Custom AstrBot plugin source for public plugins maintained in the Whereis-Alice workspace.",
-    "updated_at": "2026-07-02T12:20:00Z"
+    "updated_at": "2026-07-05T00:00:00Z"
   },
   "Whereis-Alice/astrbot_plugin_blacksouls_mojibake": {
     "author": "Huli3",
@@ -106,6 +106,18 @@
     "download_url": "https://github.com/Whereis-Alice/astrbot_plugin_minebuddy/archive/refs/heads/master.zip",
     "desc": "MineBuddy Minecraft Bot 插件，将 MC Bot 能力集成到 AstrBot，支持群聊与 MC 上下文互通，让 Bot 真正能操控角色游玩 MC",
     "updated_at": "2026-06-29T00:00:00Z"
+  },
+  "Whereis-Alice/astrbot_plugin_math_render": {
+    "author": "Huli3",
+    "name": "astrbot_plugin_math_render",
+    "display_name": "Math Render",
+    "version": "v0.4.0",
+    "repo": "https://github.com/Whereis-Alice/astrbot_plugin_math_render",
+    "download_url": "https://github.com/Whereis-Alice/astrbot_plugin_math_render/archive/refs/heads/main.zip",
+    "desc": "提供 LaTeX 公式渲染、数学解答出图、Markdown 数学卡片与几何示意图能力。",
+    "short_desc": "高质量数学公式、解答图卡与几何图渲染插件。",
+    "astrbot_version": ">=4.16,<5",
+    "updated_at": "2026-07-04T16:28:37Z"
   },
   "Whereis-Alice/astrbot_plugin_profile_weaver": {
     "author": "Whereis-Alice",
