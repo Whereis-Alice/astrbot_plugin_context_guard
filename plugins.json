@@ -2,11 +2,11 @@
   "$meta": {
     "schema_version": 1,
     "name": "Whereis-Alice AstrBot Plugin Source",
-    "version": "2026-07-05.1",
+    "version": "2026-07-05.2",
     "homepage": "https://github.com/Whereis-Alice/astrbot_plugin_context_guard",
     "repository": "https://github.com/Whereis-Alice/astrbot_plugin_context_guard",
     "description": "Custom AstrBot plugin source for public plugins maintained in the Whereis-Alice workspace.",
-    "updated_at": "2026-07-05T03:00:00Z"
+    "updated_at": "2026-07-05T03:35:00Z"
   },
   "Whereis-Alice/astrbot_plugin_animetrace_llm": {
     "author": "Huli3",
@@ -104,6 +104,17 @@
     "desc": "给 LLM 提供一个可主动调用的工具，在它感觉被骚扰时向指定会话上报情况，并支持静默、警告、观察名单等策略",
     "astrbot_version": ">=4.16,<5",
     "updated_at": "2026-06-29T00:00:00Z"
+  },
+  "Whereis-Alice/astrbot_plugin_helper_tools": {
+    "author": "Huli3",
+    "name": "astrbot_plugin_helper_tools",
+    "display_name": "辅助工具合集",
+    "version": "v0.1.0",
+    "repo": "https://github.com/Whereis-Alice/astrbot_plugin_helper_tools",
+    "download_url": "https://github.com/Whereis-Alice/astrbot_plugin_helper_tools/archive/refs/heads/main.zip",
+    "desc": "为 AstrBot LLM 注册可主动调用的小工具，当前支持查看 QQ 用户头像。",
+    "astrbot_version": ">=4.16,<5",
+    "updated_at": "2026-07-05T03:33:46Z"
   },
   "Whereis-Alice/astrbot_plugin_image_injection_auditor": {
     "author": "Whereis-Alice",
