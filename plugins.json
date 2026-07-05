@@ -2,11 +2,30 @@
   "$meta": {
     "schema_version": 1,
     "name": "Whereis-Alice AstrBot Plugin Source",
-    "version": "2026-07-05",
+    "version": "2026-07-05.1",
     "homepage": "https://github.com/Whereis-Alice/astrbot_plugin_context_guard",
     "repository": "https://github.com/Whereis-Alice/astrbot_plugin_context_guard",
     "description": "Custom AstrBot plugin source for public plugins maintained in the Whereis-Alice workspace.",
-    "updated_at": "2026-07-05T00:00:00Z"
+    "updated_at": "2026-07-05T03:00:00Z"
+  },
+  "Whereis-Alice/astrbot_plugin_animetrace_llm": {
+    "author": "Huli3",
+    "name": "astrbot_plugin_animetrace_llm",
+    "display_name": "AnimeTrace LLM 识图",
+    "version": "v4.1.0",
+    "repo": "https://github.com/Whereis-Alice/astrbot_plugin_animetrace_llm",
+    "download_url": "https://github.com/Whereis-Alice/astrbot_plugin_animetrace_llm/archive/refs/heads/main.zip",
+    "desc": "AnimeTrace 图片识别 fork，支持手动命令识图，并注册为 LLM 可主动调用的识图工具",
+    "astrbot_version": ">=4.16,<5",
+    "support_platforms": [
+      "telegram",
+      "aiocqhttp",
+      "qq_official",
+      "qq_official_webhook",
+      "weixin_oc",
+      "weixin_official_account"
+    ],
+    "updated_at": "2026-07-05T02:58:18Z"
   },
   "Whereis-Alice/astrbot_plugin_blacksouls_mojibake": {
     "author": "Huli3",
