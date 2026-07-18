@@ -2,11 +2,11 @@
   "$meta": {
     "schema_version": 1,
     "name": "Whereis-Alice AstrBot Plugin Source",
-    "version": "2026-07-05.2",
+    "version": "2026-07-18",
     "homepage": "https://github.com/Whereis-Alice/astrbot_plugin_context_guard",
     "repository": "https://github.com/Whereis-Alice/astrbot_plugin_context_guard",
     "description": "Custom AstrBot plugin source for public plugins maintained in the Whereis-Alice workspace.",
-    "updated_at": "2026-07-05T03:35:00Z"
+    "updated_at": "2026-07-18T12:57:28Z"
   },
   "Whereis-Alice/astrbot_plugin_animetrace_llm": {
     "author": "Huli3",
@@ -93,6 +93,17 @@
     "short_desc": "GIF 抽帧增强多模态识别",
     "astrbot_version": ">=4.16,<5",
     "updated_at": "2026-06-29T00:00:00Z"
+  },
+  "Whereis-Alice/astrbot_plugin_gif_toolbox": {
+    "author": "Whereis-Alice (fork of shskjw)",
+    "name": "astrbot_plugin_gif_toolbox",
+    "display_name": "GIF 工具箱（独立 Fork）",
+    "version": "v2.0.0",
+    "repo": "https://github.com/Whereis-Alice/astrbot_plugin_gif_toolbox",
+    "download_url": "https://github.com/Whereis-Alice/astrbot_plugin_gif_toolbox/archive/refs/heads/master.zip",
+    "desc": "修复图片来源下载兼容性的 GIF/APNG/WebP 工具箱，支持单图转 GIF、变速、合成、裁剪与分解。",
+    "astrbot_version": ">=4.16,<5",
+    "updated_at": "2026-07-18T12:43:43Z"
   },
   "Whereis-Alice/astrbot_plugin_harassment_reporter": {
     "author": "Huli3",
