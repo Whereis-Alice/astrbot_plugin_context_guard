@@ -2,11 +2,11 @@
   "$meta": {
     "schema_version": 1,
     "name": "Whereis-Alice AstrBot Plugin Source",
-    "version": "2026-07-18",
+    "version": "2026-07-26",
     "homepage": "https://github.com/Whereis-Alice/astrbot_plugin_context_guard",
     "repository": "https://github.com/Whereis-Alice/astrbot_plugin_context_guard",
     "description": "Custom AstrBot plugin source for public plugins maintained in the Whereis-Alice workspace.",
-    "updated_at": "2026-07-18T12:57:28Z"
+    "updated_at": "2026-07-25T16:20:32Z"
   },
   "Whereis-Alice/astrbot_plugin_animetrace_llm": {
     "author": "Huli3",
@@ -203,6 +203,17 @@
     "short_desc": "视频抽帧、长视频分段、STT 转写与临时帧注入",
     "astrbot_version": ">=4.16,<5",
     "updated_at": "2026-06-29T00:00:00Z"
+  },
+  "Whereis-Alice/astrbot_plugin_xhhrobot": {
+    "author": "Whereis-Alice",
+    "name": "astrbot_plugin_xhhrobot",
+    "display_name": "小黑盒社区机器人与 LLM 工具",
+    "version": "v0.3.0",
+    "repo": "https://github.com/Whereis-Alice/astrbot_plugin_xhhrobot",
+    "download_url": "https://github.com/Whereis-Alice/astrbot_plugin_xhhrobot/archive/refs/heads/main.zip",
+    "desc": "只运行 AstrBot，即可使用小黑盒扫码登录、人设自动回复及发帖、评论、搜索、私信等自然语言工具。",
+    "astrbot_version": ">=4.16,<5",
+    "updated_at": "2026-07-25T16:20:32Z"
   },
   "Whereis-Alice/astrbot_plugin_xiangqi_arena": {
     "author": "Whereis-Alice, based on zxx624",
