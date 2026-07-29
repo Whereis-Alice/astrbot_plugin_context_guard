@@ -2,11 +2,11 @@
   "$meta": {
     "schema_version": 1,
     "name": "Whereis-Alice AstrBot Plugin Source",
-    "version": "2026-07-26",
+    "version": "2026-07-29",
     "homepage": "https://github.com/Whereis-Alice/astrbot_plugin_context_guard",
     "repository": "https://github.com/Whereis-Alice/astrbot_plugin_context_guard",
     "description": "Custom AstrBot plugin source for public plugins maintained in the Whereis-Alice workspace.",
-    "updated_at": "2026-07-25T16:20:32Z"
+    "updated_at": "2026-07-29T05:04:31Z"
   },
   "Whereis-Alice/astrbot_plugin_animetrace_llm": {
     "author": "Huli3",
@@ -225,5 +225,16 @@
     "desc": "支持高级独立 WebUI、Pikafish HTTP、Pikafish、xqwlight、builtin 多引擎降级、低配服务器优化和简化走棋指令的 AstrBot 中国象棋插件",
     "astrbot_version": ">=4.24,<5",
     "updated_at": "2026-06-29T00:00:00Z"
+  },
+  "Whereis-Alice/astrbot_plugin_alice_image_assistant": {
+    "author": "Whereis-Alice",
+    "name": "astrbot_plugin_alice_image_assistant",
+    "display_name": "爱丽丝的图片助手",
+    "version": "v1.0.0",
+    "repo": "https://github.com/Whereis-Alice/astrbot_plugin_alice_image_assistant",
+    "download_url": "https://github.com/Whereis-Alice/astrbot_plugin_alice_image_assistant/archive/refs/heads/main.zip",
+    "desc": "让 Bot 自主精确找图、视觉挑图和以图搜图，同时保留完整短指令。",
+    "astrbot_version": ">=4.16,<5",
+    "updated_at": "2026-07-29T05:04:31Z"
   }
 }
