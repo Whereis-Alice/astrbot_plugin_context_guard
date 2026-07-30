@@ -2,11 +2,11 @@
   "$meta": {
     "schema_version": 1,
     "name": "Whereis-Alice AstrBot Plugin Source",
-    "version": "2026-07-29",
+    "version": "2026-07-30",
     "homepage": "https://github.com/Whereis-Alice/astrbot_plugin_context_guard",
     "repository": "https://github.com/Whereis-Alice/astrbot_plugin_context_guard",
     "description": "Custom AstrBot plugin source for public plugins maintained in the Whereis-Alice workspace.",
-    "updated_at": "2026-07-29T05:04:31Z"
+    "updated_at": "2026-07-30T08:51:13.987Z"
   },
   "Whereis-Alice/astrbot_plugin_animetrace_llm": {
     "author": "Huli3",
@@ -236,5 +236,16 @@
     "desc": "让 Bot 自主精确找图、视觉挑图和以图搜图，同时保留完整短指令。",
     "astrbot_version": ">=4.16,<5",
     "updated_at": "2026-07-29T05:04:31Z"
+  },
+  "Whereis-Alice/astrbot_plugin_meme_forge": {
+    "author": "Whereis-Alice",
+    "name": "astrbot_plugin_meme_forge",
+    "display_name": "Meme 工坊",
+    "version": "v1.0.0",
+    "repo": "https://github.com/Whereis-Alice/astrbot_plugin_meme_forge",
+    "download_url": "https://github.com/Whereis-Alice/astrbot_plugin_meme_forge/archive/refs/heads/main.zip",
+    "desc": "支持完整选项参数、回复图片和 meme_emoji 扩展的本地表情包生成插件。",
+    "astrbot_version": ">=4.16,<5",
+    "updated_at": "2026-07-30T08:51:13.987Z"
   }
 }
